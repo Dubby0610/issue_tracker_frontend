@@ -16,12 +16,6 @@ const ProjectDetail: React.FC = () => {
   const [assigneeFilter, setAssigneeFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  useEffect(() => {
-    if (projectId) {
-      loadProjectAndIssues();
-    }
-  }, [projectId, loadProjectAndIssues]);
-
   const loadProjectAndIssues = useCallback(async () => {
     try {
       const [projectResponse, issuesResponse] = await Promise.all([
@@ -36,6 +30,12 @@ const ProjectDetail: React.FC = () => {
       setLoading(false);
     }
   }, [projectId]);
+
+  useEffect(() => {
+    if (projectId) {
+      loadProjectAndIssues();
+    }
+  }, [projectId, loadProjectAndIssues]);
 
   const handleIssueCreated = (newIssue: Issue) => {
     setIssues([...issues, newIssue]);
