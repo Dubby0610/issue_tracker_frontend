@@ -1,16 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { PlusIcon, MagnifyingGlassIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import { Menu } from '@headlessui/react';
 import { Project } from '../types';
 import { projectsApi } from '../services/api';
 import CreateProjectModal from './CreateProjectModal';
+import ConfirmationModal from './ConfirmationModal';
+import EditProjectModal from './EditProjectModal';
 
 const ProjectList: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingProjectId, setDeletingProjectId] = useState<number | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadProjects();
@@ -32,15 +39,35 @@ const ProjectList: React.FC = () => {
     setShowCreateModal(false);
   };
 
+  const handleEditProject = (project: Project) => {
+    setEditingProject(project);
+    setShowEditModal(true);
+  };
+
+  const handleProjectUpdated = (updatedProject: Project) => {
+    setProjects(projects.map(p => p.id === updatedProject.id ? updatedProject : p));
+    setShowEditModal(false);
+    setEditingProject(null);
+  };
+
+  const handleViewProject = (projectId: number) => {
+    navigate(`/projects/${projectId}`);
+  };
+
   const handleDeleteProject = async (projectId: number) => {
-    if (window.confirm('Are you sure you want to delete this project?')) {
-      try {
-        await projectsApi.delete(projectId);
-        setProjects(projects.filter(p => p.id !== projectId));
-      } catch (error) {
-        console.error('Error deleting project:', error);
-      }
+    try {
+      await projectsApi.delete(projectId);
+      setProjects(projects.filter(p => p.id !== projectId));
+      setShowDeleteConfirm(false);
+      setDeletingProjectId(null);
+    } catch (error) {
+      console.error('Error deleting project:', error);
     }
+  };
+
+  const confirmDeleteProject = (projectId: number) => {
+    setDeletingProjectId(projectId);
+    setShowDeleteConfirm(true);
   };
 
   const filteredProjects = projects.filter(project =>
@@ -107,7 +134,8 @@ const ProjectList: React.FC = () => {
         {filteredProjects.map((project) => (
           <div
             key={project.id}
-            className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
+            className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => handleViewProject(project.id)}
           >
             <div className="p-6">
               <div className="flex items-center justify-between">
@@ -115,24 +143,33 @@ const ProjectList: React.FC = () => {
                   {project.name}
                 </h3>
                 <Menu as="div" className="relative">
-                  <Menu.Button className="p-1 rounded-full text-gray-400 hover:text-gray-600">
+                  <Menu.Button 
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-1 rounded-full text-gray-400 hover:text-gray-600"
+                  >
                     <EllipsisVerticalIcon className="w-5 h-5" />
                   </Menu.Button>
                   <Menu.Items className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
                     <Menu.Item>
                       {({ active }) => (
-                        <Link
-                          to={`/projects/${project.id}`}
-                          className={`${active ? 'bg-gray-100' : ''} block px-4 py-2 text-sm text-gray-700`}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditProject(project);
+                          }}
+                          className={`${active ? 'bg-gray-100' : ''} block w-full text-left px-4 py-2 text-sm text-gray-700`}
                         >
-                          View Details
-                        </Link>
+                          Edit project
+                        </button>
                       )}
                     </Menu.Item>
                     <Menu.Item>
                       {({ active }) => (
                         <button
-                          onClick={() => handleDeleteProject(project.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            confirmDeleteProject(project.id);
+                          }}
                           className={`${active ? 'bg-gray-100' : ''} block w-full text-left px-4 py-2 text-sm text-red-700`}
                         >
                           Delete project
@@ -177,6 +214,32 @@ const ProjectList: React.FC = () => {
           onProjectCreated={handleProjectCreated}
         />
       )}
+
+      {showEditModal && editingProject && (
+        <EditProjectModal
+          project={editingProject}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingProject(null);
+          }}
+          onProjectUpdated={handleProjectUpdated}
+        />
+      )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setDeletingProjectId(null);
+        }}
+        onConfirm={() => deletingProjectId && handleDeleteProject(deletingProjectId)}
+        title="Delete Project"
+        message="Are you sure you want to delete this project? This action cannot be undone and will also delete all associated issues."
+        confirmText="Delete Project"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 };

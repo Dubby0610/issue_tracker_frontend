@@ -3,16 +3,17 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { Project } from '../types';
 import { projectsApi } from '../services/api';
 
-interface CreateProjectModalProps {
+interface EditProjectModalProps {
+  project: Project;
   onClose: () => void;
-  onProjectCreated: (project: Project) => void;
+  onProjectUpdated: (project: Project) => void;
 }
 
-const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ onClose, onProjectCreated }) => {
+const EditProjectModal: React.FC<EditProjectModalProps> = ({ project, onClose, onProjectUpdated }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    status: 'active'
+    name: project.name,
+    description: project.description || '',
+    status: project.status
   });
   const [loading, setLoading] = useState(false);
 
@@ -21,10 +22,10 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ onClose, onProj
     setLoading(true);
 
     try {
-      const response = await projectsApi.create(formData);
-      onProjectCreated(response.data);
+      const response = await projectsApi.update(project.id, formData);
+      onProjectUpdated(response.data);
     } catch (error) {
-      console.error('Error creating project:', error);
+      console.error('Error updating project:', error);
     } finally {
       setLoading(false);
     }
@@ -50,7 +51,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ onClose, onProj
         <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
           <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Create New Project</h3>
+              <h3 className="text-xl font-semibold text-gray-900">Edit Project</h3>
               <button
                 onClick={onClose}
                 className="rounded-md bg-white text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -59,7 +60,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ onClose, onProj
               </button>
             </div>
 
-        <form id="create-project-form" onSubmit={handleSubmit}>
+        <form id="edit-project-form" onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
               Project Name
@@ -108,18 +109,16 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ onClose, onProj
               <option value="archived">Archived</option>
             </select>
           </div>
-
-
         </form>
           </div>
           <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
             <button
               type="submit"
-              form="create-project-form"
+              form="edit-project-form"
               disabled={loading || !formData.name}
               className="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating...' : 'Create Project'}
+              {loading ? 'Updating...' : 'Update Project'}
             </button>
             <button
               type="button"
@@ -135,4 +134,4 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ onClose, onProj
   );
 };
 
-export default CreateProjectModal;
+export default EditProjectModal;

@@ -30,8 +30,8 @@ export const issuesApi = {
 
 // Comments API
 export const commentsApi = {
-  getByIssue: (issueId: number) => api.get<Comment[]>(`/issues/${issueId}/comments`),
-  create: (issueId: number, data: CreateCommentData) => api.post<Comment>(`/issues/${issueId}/comments`, data),
+  getByIssue: (projectId: number, issueId: number) => api.get<Comment[]>(`/projects/${projectId}/issues/${issueId}/comments`),
+  create: (projectId: number, issueId: number, data: CreateCommentData) => api.post<Comment>(`/projects/${projectId}/issues/${issueId}/comments`, data),
   delete: (id: number) => api.delete(`/comments/${id}`),
 };
 

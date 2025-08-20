@@ -5,6 +5,7 @@ import { Menu } from '@headlessui/react';
 import { Project, Issue } from '../types';
 import { projectsApi, issuesApi } from '../services/api';
 import CreateIssueModal from './CreateIssueModal';
+import ConfirmationModal from './ConfirmationModal';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -15,6 +16,8 @@ const ProjectDetail: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [assigneeFilter, setAssigneeFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingIssueId, setDeletingIssueId] = useState<number | null>(null);
 
   const loadProjectAndIssues = useCallback(async () => {
     try {
@@ -43,14 +46,19 @@ const ProjectDetail: React.FC = () => {
   };
 
   const handleDeleteIssue = async (issueId: number) => {
-    if (window.confirm('Are you sure you want to delete this issue?')) {
-      try {
-        await issuesApi.delete(Number(projectId), issueId);
-        setIssues(issues.filter(issue => issue.id !== issueId));
-      } catch (error) {
-        console.error('Error deleting issue:', error);
-      }
+    try {
+      await issuesApi.delete(Number(projectId), issueId);
+      setIssues(issues.filter(issue => issue.id !== issueId));
+      setShowDeleteConfirm(false);
+      setDeletingIssueId(null);
+    } catch (error) {
+      console.error('Error deleting issue:', error);
     }
+  };
+
+  const confirmDeleteIssue = (issueId: number) => {
+    setDeletingIssueId(issueId);
+    setShowDeleteConfirm(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -166,26 +174,26 @@ const ProjectDetail: React.FC = () => {
       </div>
 
       {/* Issues Table */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <table className="min-w-full divide-y divide-gray-200">
+      <div className="bg-white shadow sm:rounded-md">
+        <table className="w-full divide-y divide-gray-200 table-fixed">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="w-16 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 No
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Title
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="w-32 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Date created
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="w-40 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Assigned to
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="w-24 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="w-20 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Action
               </th>
             </tr>
@@ -227,16 +235,18 @@ const ProjectDetail: React.FC = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <Menu as="div" className="relative inline-block text-left">
-                    <Menu.Button className="p-1 rounded-full text-gray-400 hover:text-gray-600">
-                      <EllipsisVerticalIcon className="w-5 h-5" />
+                  <Menu as="div" className="relative">
+                    <Menu.Button className="inline-flex items-center p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600">
+                      <EllipsisVerticalIcon className="w-4 h-4" />
                     </Menu.Button>
-                    <Menu.Items className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                    <Menu.Items className="absolute right-0 z-50 mt-1 w-24 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                       <Menu.Item>
                         {({ active }) => (
                           <Link
                             to={`/projects/${projectId}/issues/${issue.id}`}
-                            className={`${active ? 'bg-gray-100' : ''} block px-4 py-2 text-sm text-gray-700`}
+                            className={`${
+                              active ? 'bg-gray-100' : ''
+                            } group flex items-center px-3 py-2 text-xs text-gray-700`}
                           >
                             Edit
                           </Link>
@@ -245,8 +255,10 @@ const ProjectDetail: React.FC = () => {
                       <Menu.Item>
                         {({ active }) => (
                           <button
-                            onClick={() => handleDeleteIssue(issue.id)}
-                            className={`${active ? 'bg-gray-100' : ''} block w-full text-left px-4 py-2 text-sm text-red-700`}
+                            onClick={() => confirmDeleteIssue(issue.id)}
+                            className={`${
+                              active ? 'bg-gray-100' : ''
+                            } group flex w-full items-center px-3 py-2 text-xs text-red-600`}
                           >
                             Delete
                           </button>
@@ -263,7 +275,7 @@ const ProjectDetail: React.FC = () => {
         {filteredIssues.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-500">
-              Showing 1 to 1 of {issues.length} results
+              No issues found
             </p>
           </div>
         )}
@@ -274,8 +286,24 @@ const ProjectDetail: React.FC = () => {
           projectId={Number(projectId)}
           onClose={() => setShowCreateModal(false)}
           onIssueCreated={handleIssueCreated}
+          existingIssues={issues}
         />
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setDeletingIssueId(null);
+        }}
+        onConfirm={() => deletingIssueId && handleDeleteIssue(deletingIssueId)}
+        title="Delete Issue"
+        message="Are you sure you want to delete this issue? This action cannot be undone."
+        confirmText="Delete Issue"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 };

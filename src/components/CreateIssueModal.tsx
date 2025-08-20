@@ -7,9 +7,10 @@ interface CreateIssueModalProps {
   projectId: number;
   onClose: () => void;
   onIssueCreated: (issue: Issue) => void;
+  existingIssues?: Issue[];
 }
 
-const CreateIssueModal: React.FC<CreateIssueModalProps> = ({ projectId, onClose, onIssueCreated }) => {
+const CreateIssueModal: React.FC<CreateIssueModalProps> = ({ projectId, onClose, onIssueCreated, existingIssues = [] }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -60,24 +61,38 @@ const CreateIssueModal: React.FC<CreateIssueModalProps> = ({ projectId, onClose,
   };
 
   const getNextIssueNumber = () => {
-    // This would typically come from the API
-    return '#2';
+    if (existingIssues.length === 0) {
+      return 'Will be assigned automatically';
+    }
+    
+    // Find the highest ID in existing issues and predict the next one
+    const maxId = Math.max(...existingIssues.map(issue => issue.id));
+    return `#${maxId + 1} (estimated)`;
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Create New Issue</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <XMarkIcon className="w-6 h-6" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        {/* Backdrop */}
+        <div 
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          onClick={onClose}
+        />
+        
+        {/* Modal */}
+        <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+          <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Create New Issue</h3>
+              <button
+                onClick={onClose}
+                className="rounded-md bg-white text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
 
-        <form onSubmit={handleSubmit}>
+        <form id="create-issue-form" onSubmit={handleSubmit}>
           <div className="mb-4 flex space-x-4">
             <div className="flex-1">
               <label htmlFor="issue_number" className="block text-sm font-medium text-gray-700 mb-2">
@@ -188,23 +203,27 @@ const CreateIssueModal: React.FC<CreateIssueModalProps> = ({ projectId, onClose,
             </select>
           </div>
 
-          <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-            >
-              Cancel
-            </button>
+
+        </form>
+          </div>
+          <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
             <button
               type="submit"
+              form="create-issue-form"
               disabled={loading || !formData.title}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating...' : 'Create Issue'}
             </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Cancel
+            </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
