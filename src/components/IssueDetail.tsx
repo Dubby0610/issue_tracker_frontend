@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronRightIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import { Issue, Comment, User } from '../types';
 import { issuesApi, commentsApi, usersApi } from '../services/api';
 
@@ -20,9 +20,9 @@ const IssueDetail: React.FC = () => {
       loadIssueDetails();
       loadUsers();
     }
-  }, [projectId, issueId]);
+  }, [projectId, issueId, loadIssueDetails]);
 
-  const loadIssueDetails = async () => {
+  const loadIssueDetails = useCallback(async () => {
     try {
       const [issueResponse, commentsResponse] = await Promise.all([
         issuesApi.getById(Number(projectId), Number(issueId)),
@@ -35,7 +35,7 @@ const IssueDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId, issueId]);
 
   const loadUsers = async () => {
     try {
