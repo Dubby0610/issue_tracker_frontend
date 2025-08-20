@@ -15,13 +15,6 @@ const IssueDetail: React.FC = () => {
   const [newComment, setNewComment] = useState('');
   const [selectedUser, setSelectedUser] = useState<number>(1); // Default user
 
-  useEffect(() => {
-    if (projectId && issueId) {
-      loadIssueDetails();
-      loadUsers();
-    }
-  }, [projectId, issueId, loadIssueDetails]);
-
   const loadIssueDetails = useCallback(async () => {
     try {
       const [issueResponse, commentsResponse] = await Promise.all([
@@ -36,6 +29,13 @@ const IssueDetail: React.FC = () => {
       setLoading(false);
     }
   }, [projectId, issueId]);
+
+  useEffect(() => {
+    if (projectId && issueId) {
+      loadIssueDetails();
+      loadUsers();
+    }
+  }, [projectId, issueId, loadIssueDetails]);
 
   const loadUsers = async () => {
     try {
